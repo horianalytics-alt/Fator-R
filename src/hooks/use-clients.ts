@@ -61,17 +61,44 @@ export function useCreateClient() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (newClient: Omit<Client, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async ({
+      client,
+      obligations,
+    }: {
+      client: Omit<Client, 'id' | 'user_id' | 'created_at' | 'updated_at'>;
+      obligations?: { obligation_type_id: string; due_day: number }[];
+    }) => {
       if (!user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase
+      // 1. Create client
+      const { data: newClient, error: clientError } = await supabase
         .from('clients')
-        .insert([{ ...newClient, user_id: user.id }])
+        .insert([{ ...client, user_id: user.id }])
         .select()
         .single();
 
-      if (error) throw error;
-      return data;
+      if (clientError) throw clientError;
+
+      // 2. Create obligations if any
+      if (obligations && obligations.length > 0) {
+        const obsToInsert = obligations.map((obs) => ({
+          client_id: newClient.id,
+          obligation_type_id: obs.obligation_type_id,
+          due_day: obs.due_day,
+          user_id: user.id,
+        }));
+
+        const { error: obsError } = await supabase
+          .from('client_obligations')
+          .insert(obsToInsert);
+
+        if (obsError) {
+          console.error('Erro ao inserir obrigações:', obsError);
+          // Non-blocking for the client creation, but log it
+        }
+      }
+
+      return newClient;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });

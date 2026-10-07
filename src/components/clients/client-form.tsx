@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,7 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Client, TaxRegime, PaymentStatus } from "@/lib/types";
+import { Client } from "@/lib/types";
+import { useObligationTypes } from "@/hooks/use-obligations";
 
 const clientFormSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
@@ -37,11 +39,45 @@ type ClientFormValues = z.infer<typeof clientFormSchema>;
 
 interface ClientFormProps {
   client?: Client;
-  onSubmit: (data: ClientFormValues) => void;
+  onSubmit: (data: ClientFormValues, obligations?: { obligation_type_id: string; due_day: number }[]) => void;
   onCancel: () => void;
 }
 
+const REGIME_TEMPLATES = {
+  mei: [
+    { name: "DAS - Simples Nacional", defaultDay: 20 },
+    { name: "DASN-SIMEI", defaultDay: 31 },
+  ],
+  simples: [
+    { name: "DAS - Simples Nacional", defaultDay: 20 },
+    { name: "Folha de Pagamento", defaultDay: 5 },
+    { name: "FGTS Digital", defaultDay: 20 },
+    { name: "INSS", defaultDay: 20 },
+    { name: "DEFIS", defaultDay: 31 },
+  ],
+  lucro_presumido: [
+    { name: "IRPJ/CSLL", defaultDay: 30 },
+    { name: "PIS/COFINS", defaultDay: 25 },
+    { name: "Folha de Pagamento", defaultDay: 5 },
+    { name: "FGTS Digital", defaultDay: 20 },
+    { name: "INSS", defaultDay: 20 },
+    { name: "DCTF", defaultDay: 15 },
+  ],
+  lucro_real: [
+    { name: "IRPJ/CSLL", defaultDay: 30 },
+    { name: "PIS/COFINS", defaultDay: 25 },
+    { name: "Folha de Pagamento", defaultDay: 5 },
+    { name: "FGTS Digital", defaultDay: 20 },
+    { name: "INSS", defaultDay: 20 },
+    { name: "DCTF", defaultDay: 15 },
+  ],
+  outro: [],
+};
+
 export function ClientForm({ client, onSubmit, onCancel }: ClientFormProps) {
+  const { data: obligationTypes } = useObligationTypes();
+  const [selectedObs, setSelectedObs] = useState<Record<string, { selected: boolean; due_day: number }>>({});
+
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientFormSchema),
     defaultValues: {
@@ -56,9 +92,62 @@ export function ClientForm({ client, onSubmit, onCancel }: ClientFormProps) {
     },
   });
 
+  const taxRegime = form.watch("tax_regime");
+  const isCreating = !client;
+
+  useEffect(() => {
+    if (!isCreating || !obligationTypes) return;
+
+    const template = REGIME_TEMPLATES[taxRegime as keyof typeof REGIME_TEMPLATES] || [];
+    const newState: Record<string, { selected: boolean; due_day: number }> = {};
+
+    obligationTypes.forEach((ob) => {
+      // Find if this DB obligation matches any in the template
+      const templateMatch = template.find((t) => 
+        ob.name.toLowerCase().includes(t.name.toLowerCase())
+      );
+
+      newState[ob.id] = {
+        selected: !!templateMatch,
+        due_day: templateMatch ? templateMatch.defaultDay : (ob.default_due_day || 30),
+      };
+    });
+
+    setSelectedObs(newState);
+  }, [taxRegime, obligationTypes, isCreating]);
+
+  const handleSubmit = (data: ClientFormValues) => {
+    let finalObligations = undefined;
+
+    if (isCreating && obligationTypes) {
+      finalObligations = obligationTypes
+        .filter((ob) => selectedObs[ob.id]?.selected)
+        .map((ob) => ({
+          obligation_type_id: ob.id,
+          due_day: selectedObs[ob.id]?.due_day || 30,
+        }));
+    }
+
+    onSubmit(data, finalObligations);
+  };
+
+  const toggleObligation = (id: string, checked: boolean) => {
+    setSelectedObs((prev) => ({
+      ...prev,
+      [id]: { ...prev[id], selected: checked },
+    }));
+  };
+
+  const changeDueDay = (id: string, day: number) => {
+    setSelectedObs((prev) => ({
+      ...prev,
+      [id]: { ...prev[id], due_day: day },
+    }));
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="name"
@@ -124,7 +213,7 @@ export function ClientForm({ client, onSubmit, onCancel }: ClientFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Regime Tributário *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o regime" />
@@ -149,7 +238,7 @@ export function ClientForm({ client, onSubmit, onCancel }: ClientFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Situação Financeira *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione a situação" />
@@ -204,6 +293,57 @@ export function ClientForm({ client, onSubmit, onCancel }: ClientFormProps) {
             </FormItem>
           )}
         />
+
+        {isCreating && obligationTypes && obligationTypes.length > 0 && (
+          <div className="pt-2 border-t mt-4">
+            <div className="space-y-1 mb-3">
+              <h4 className="text-sm font-medium leading-none">Obrigações comuns deste regime</h4>
+              <p className="text-[0.8rem] text-muted-foreground">
+                Selecione as obrigações que devem ser criadas junto com este cliente.
+              </p>
+            </div>
+            
+            <div className="border rounded-md max-h-64 overflow-y-auto p-3 space-y-3 bg-muted/20">
+              {obligationTypes.map((ob) => {
+                const isSelected = selectedObs[ob.id]?.selected || false;
+                const dueDay = selectedObs[ob.id]?.due_day || 30;
+
+                return (
+                  <div key={ob.id} className="flex items-center justify-between gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id={`ob-${ob.id}`}
+                        checked={isSelected}
+                        onChange={(e) => toggleObligation(ob.id, e.target.checked)}
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary accent-primary"
+                      />
+                      <label 
+                        htmlFor={`ob-${ob.id}`}
+                        className="text-sm font-medium cursor-pointer select-none"
+                      >
+                        {ob.name}
+                      </label>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Dia</span>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={31}
+                        value={dueDay}
+                        onChange={(e) => changeDueDay(ob.id, parseInt(e.target.value) || 1)}
+                        disabled={!isSelected}
+                        className="w-16 h-8 text-center text-sm"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="flex justify-end gap-2 pt-4">
           <Button type="button" variant="outline" onClick={onCancel}>
