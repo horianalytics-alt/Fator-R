@@ -31,7 +31,10 @@ export function AppSidebar() {
   return (
     <Sidebar className="bg-sidebar text-sidebar-foreground border-r border-border">
       <SidebarHeader className="p-4 border-b border-border/50">
-        <h2 className="text-xl font-bold tracking-tight">Painel Contábil</h2>
+        <div className="flex items-center gap-3">
+          <img src="/icon-192x192.png" alt="Logo Fator R" className="w-8 h-8 object-contain dark:brightness-200 dark:grayscale" />
+          <h2 className="text-xl font-bold tracking-tight">Fator R</h2>
+        </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
