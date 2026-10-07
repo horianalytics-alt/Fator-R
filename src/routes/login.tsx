@@ -60,10 +60,7 @@ function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-2">
-          <div className="flex justify-center mb-2">
-            <img src="/icon-192x192.png" alt="Logo Fator R" className="w-16 h-16 object-contain dark:brightness-200 dark:grayscale" />
-          </div>
-          <CardTitle className="text-3xl font-bold tracking-tight">Fator R</CardTitle>
+          <CardTitle className="text-3xl font-bold tracking-tight">Painel Contábil</CardTitle>
           <CardDescription>
             Entre com suas credenciais para acessar o sistema
           </CardDescription>
