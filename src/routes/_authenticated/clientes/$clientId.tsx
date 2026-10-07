@@ -49,7 +49,7 @@ function ClientDetailRoute() {
   const [isEditOpen, setIsEditOpen] = useState(false);
 
   const currentDate = new Date();
-  const currentMonthStr = format(currentDate, 'yyyy-MM');
+  const currentMonthStr = format(currentDate, 'yyyy-MM-01');
   const { data: clientObligations } = useClientObligations(clientId);
   const { data: monthTasks } = useTasks(clientId, currentMonthStr);
   

@@ -37,19 +37,27 @@ export function StatusCard({ title, count, variant, items, icon: Icon, isLoading
         )}
         
         {displayItems.length > 0 && !isLoading && (
-          <div className="mt-4 space-y-2 border-t pt-4 flex-1">
+          <div className="mt-4 space-y-3 border-t pt-4 flex-1">
             {displayItems.map((item) => {
               const clientName = item.clients?.name || "Desconhecido";
+              const isDevedor = item.clients?.payment_status === 'devedor';
               const obligationName = item.client_obligations?.obligation_types?.name || "Obrigação";
               const dueDate = item.due_date ? format(parseISO(item.due_date), "dd/MM") : "";
               
               return (
-                <div key={item.id} className="flex justify-between items-center text-xs">
-                  <div className="truncate pr-2">
-                    <span className="font-medium">{clientName}</span>
-                    <span className="text-muted-foreground ml-1">- {obligationName}</span>
+                <div key={item.id} className="flex justify-between items-center text-xs gap-2">
+                  <div className="flex-1 min-w-0 flex items-center gap-1.5">
+                    <span className="font-medium truncate block" title={clientName}>{clientName}</span>
+                    {isDevedor && (
+                      <span className="shrink-0 bg-red-600 text-white text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-sm leading-none">
+                        Devedor
+                      </span>
+                    )}
+                    <span className="text-muted-foreground truncate block" title={obligationName}>
+                      - {obligationName}
+                    </span>
                   </div>
-                  <span className={cn("whitespace-nowrap font-medium", {
+                  <span className={cn("whitespace-nowrap font-medium shrink-0", {
                     "text-red-600": isDanger,
                     "text-yellow-600": isWarning,
                   })}>{dueDate}</span>

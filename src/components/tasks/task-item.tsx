@@ -1,9 +1,19 @@
+import { useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { CheckCircle2, Circle } from 'lucide-react';
+import { useAddHold } from '@/hooks/use-holds';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface TaskItemProps {
   task: any;
@@ -12,63 +22,135 @@ interface TaskItemProps {
 }
 
 export function TaskItem({ task, onComplete, onUndo }: TaskItemProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const isCompleted = task.status === 'concluida';
   const obligationName = task.client_obligations?.obligation_types?.name || 'Obrigação';
   const isOverdue = !isCompleted && new Date(task.due_date) < new Date(new Date().setHours(0, 0, 0, 0));
+  
+  // If task has clients object joined, check payment_status
+  const isDevedor = task.clients?.payment_status === 'devedor';
+  const clientName = task.clients?.name;
+  const addHold = useAddHold();
 
-  const handleToggle = () => {
+  const handleToggleClick = () => {
     if (isCompleted && onUndo) {
       onUndo(task.id);
     } else if (!isCompleted) {
-      onComplete(task.id);
+      if (isDevedor) {
+        setIsModalOpen(true);
+      } else {
+        onComplete(task.id);
+      }
     }
   };
 
+  const handleOnlyComplete = () => {
+    onComplete(task.id);
+    setIsModalOpen(false);
+  };
+
+  const handleCompleteAndHold = () => {
+    onComplete(task.id);
+    addHold.mutate({
+      client_id: task.client_id,
+      document_description: obligationName,
+      reason: "Aguardando pagamento de honorários",
+    });
+    setIsModalOpen(false);
+  };
+
   return (
-    <div className={cn(
-      "flex items-center justify-between p-4 border rounded-lg transition-colors",
-      isCompleted ? "bg-muted/50" : "bg-card hover:bg-muted/10",
-      isOverdue && !isCompleted && "border-destructive/50 bg-destructive/5"
-    )}>
-      <div className="flex items-center gap-4">
-        <button 
-          onClick={handleToggle}
-          className="text-muted-foreground hover:text-primary transition-colors focus:outline-none"
-        >
+    <>
+      <div className={cn(
+        "flex items-center justify-between p-4 border rounded-lg transition-colors",
+        isCompleted ? "bg-muted/50" : "bg-card hover:bg-muted/10",
+        isOverdue && !isCompleted && "border-destructive/50 bg-destructive/5"
+      )}>
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <button 
+            onClick={handleToggleClick}
+            className="text-muted-foreground hover:text-primary transition-colors focus:outline-none shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center -ml-2"
+          >
+            {isCompleted ? (
+              <CheckCircle2 className="h-6 w-6 text-green-500" />
+            ) : (
+              <Circle className="h-6 w-6" />
+            )}
+          </button>
+          <div className="flex-1 min-w-0 pr-2">
+            <h4 
+              className={cn(
+                "font-medium text-sm md:text-base truncate",
+                isCompleted && "line-through text-muted-foreground"
+              )}
+              title={obligationName}
+            >
+              {obligationName}
+            </h4>
+            <div className="flex items-center gap-2">
+              {clientName && (
+                <span className="text-xs text-muted-foreground font-medium truncate max-w-[120px] sm:max-w-[200px]" title={clientName}>
+                  {clientName}
+                </span>
+              )}
+              <p className="text-xs text-muted-foreground shrink-0">
+                Venc.: {format(new Date(task.due_date), "dd/MM", { locale: ptBR })}
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2 shrink-0">
           {isCompleted ? (
-            <CheckCircle2 className="h-6 w-6 text-green-500" />
+            <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
+              Concluída
+            </Badge>
+          ) : isOverdue ? (
+            <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-500/20">
+              Atrasada
+            </Badge>
           ) : (
-            <Circle className="h-6 w-6" />
+            <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
+              Pendente
+            </Badge>
           )}
-        </button>
-        <div>
-          <h4 className={cn(
-            "font-medium text-sm md:text-base",
-            isCompleted && "line-through text-muted-foreground"
-          )}>
-            {obligationName}
-          </h4>
-          <p className="text-xs text-muted-foreground">
-            Vencimento: {format(new Date(task.due_date), "dd 'de' MMMM", { locale: ptBR })}
-          </p>
         </div>
       </div>
-      
-      <div className="flex items-center gap-2">
-        {isCompleted ? (
-          <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
-            Concluída
-          </Badge>
-        ) : isOverdue ? (
-          <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-500/20">
-            Atrasada
-          </Badge>
-        ) : (
-          <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
-            Pendente
-          </Badge>
-        )}
-      </div>
-    </div>
+
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Cliente inadimplente</DialogTitle>
+            <DialogDescription className="pt-2">
+              <strong className="text-foreground">{clientName || 'O cliente'}</strong> está com pagamento pendente. Deseja registrar a retenção deste documento?
+            </DialogDescription>
+          </DialogHeader>
+          
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 mt-4">
+            <Button 
+              variant="ghost" 
+              onClick={() => setIsModalOpen(false)}
+              className="min-h-[44px] w-full sm:w-auto order-3 sm:order-1"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              variant="secondary" 
+              onClick={handleOnlyComplete}
+              className="min-h-[44px] w-full sm:w-auto order-2"
+            >
+              Só concluir
+            </Button>
+            <Button 
+              variant="default" 
+              onClick={handleCompleteAndHold}
+              className="min-h-[44px] w-full sm:w-auto order-1 sm:order-3"
+            >
+              Concluir e reter
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

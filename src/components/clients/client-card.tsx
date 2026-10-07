@@ -33,7 +33,7 @@ export function ClientCard({ client, pendingTasksCount, onClick }: ClientCardPro
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-2">
             <Building2 className="h-5 w-5 text-muted-foreground" />
-            <h3 className="font-semibold text-lg line-clamp-1">{client.name}</h3>
+            <h3 className="font-semibold text-lg line-clamp-1" title={client.name}>{client.name}</h3>
           </div>
           {!client.is_active && (
             <Badge variant="outline" className="text-muted-foreground">Inativo</Badge>

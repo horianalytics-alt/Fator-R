@@ -13,7 +13,7 @@ export function useOverdueTasks() {
         .from('tasks')
         .select(`
           *,
-          clients (id, name),
+          clients (id, name, payment_status),
           client_obligations (
             obligation_types (id, name)
           )
@@ -42,7 +42,7 @@ export function useUpcomingTasks() {
         .from('tasks')
         .select(`
           *,
-          clients (id, name),
+          clients (id, name, payment_status),
           client_obligations (
             obligation_types (id, name)
           )

@@ -37,12 +37,15 @@ export function HoldItem({ hold, showClient = false }: HoldItemProps) {
           {hold.status === 'liberado' ? <Unlock className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
         </div>
         <div>
-          <div className="flex items-center gap-2">
-            <h4 className={cn("font-medium", hold.status === 'liberado' && "text-muted-foreground line-through")}>
+          <div className="flex flex-wrap items-center gap-2">
+            <h4 
+              className={cn("font-medium truncate max-w-[200px] sm:max-w-[300px]", hold.status === 'liberado' && "text-muted-foreground line-through")}
+              title={hold.document_description}
+            >
               {hold.document_description}
             </h4>
             {isWarning && (
-              <Badge variant="outline" className="text-amber-600 border-amber-600 bg-amber-50 dark:bg-transparent">
+              <Badge variant="outline" className="text-amber-600 border-amber-600 bg-amber-50 dark:bg-transparent shrink-0">
                 <AlertTriangle className="h-3 w-3 mr-1" />
                 Há {daysHeld} dias
               </Badge>
@@ -50,7 +53,9 @@ export function HoldItem({ hold, showClient = false }: HoldItemProps) {
           </div>
           <div className="flex flex-col mt-1 text-sm text-muted-foreground gap-1">
             {showClient && hold.clients?.name && (
-              <span className="font-medium text-foreground">Cliente: {hold.clients.name}</span>
+              <span className="font-medium text-foreground truncate max-w-[250px] sm:max-w-[400px]" title={hold.clients.name}>
+                Cliente: {hold.clients.name}
+              </span>
             )}
             <span>Motivo: {hold.reason}</span>
             <div className="flex flex-wrap gap-3 mt-1">

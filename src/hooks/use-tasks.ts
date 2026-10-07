@@ -10,6 +10,7 @@ export function useTasks(clientId?: string, referenceMonth?: string) {
         .from('tasks')
         .select(`
           *,
+          clients (id, name, payment_status),
           client_obligations (
             *,
             obligation_types (*)

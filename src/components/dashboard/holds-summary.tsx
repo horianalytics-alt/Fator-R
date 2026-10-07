@@ -26,9 +26,9 @@ export function HoldsSummary({ count, items, isLoading }: HoldsSummaryProps) {
           <div className="space-y-3">
             {items.map((item) => (
               <div key={item.id} className="flex flex-col gap-1 text-sm border-l-2 border-orange-500 pl-3">
-                <div className="font-medium truncate">{item.clients?.name || "Desconhecido"}</div>
+                <div className="font-medium truncate" title={item.clients?.name}>{item.clients?.name || "Desconhecido"}</div>
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span className="truncate pr-2">{item.document_description}</span>
+                  <span className="truncate pr-2" title={item.document_description}>{item.document_description}</span>
                   <span className="whitespace-nowrap">
                     {item.held_since ? format(parseISO(item.held_since), "dd/MM") : ""}
                   </span>

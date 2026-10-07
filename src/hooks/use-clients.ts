@@ -98,9 +98,10 @@ export function useCreateClient() {
           obligationsFailed = true;
           // Non-blocking for the client creation, but log it
         }
+        return { client: newClient, obligationsFailed };
       }
 
-      return { client: newClient, obligationsFailed };
+      return { client: newClient, obligationsFailed: false };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });

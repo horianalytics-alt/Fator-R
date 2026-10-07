@@ -15,8 +15,8 @@ function CalendarioPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   
-  // Format as YYYY-MM for our useTasks hook referenceMonth filter
-  const referenceMonthStr = format(currentMonth, 'yyyy-MM');
+  // Format as YYYY-MM-01 to match DATE column type
+  const referenceMonthStr = format(currentMonth, 'yyyy-MM-01');
   
   const { data: tasks, isLoading } = useTasks(undefined, referenceMonthStr);
 
