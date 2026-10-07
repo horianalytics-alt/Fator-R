@@ -1,4 +1,4 @@
-import { Home, Users, Calendar, ShieldAlert, Settings } from "lucide-react";
+import { Home, Users, Calendar, ShieldAlert, Settings, Sun, Moon } from "lucide-react";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   Sidebar,
@@ -10,7 +10,10 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { useTheme } from "@/lib/theme-provider";
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: Home },
@@ -22,6 +25,7 @@ const navItems = [
 
 export function AppSidebar() {
   const location = useLocation();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <Sidebar className="bg-sidebar text-sidebar-foreground border-r border-border">
@@ -50,6 +54,27 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="p-3 border-t border-border/50">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleTheme}
+          className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          title={theme === "dark" ? "Mudar para modo claro" : "Mudar para modo escuro"}
+        >
+          {theme === "dark" ? (
+            <>
+              <Sun className="h-4 w-4" />
+              <span>Modo claro</span>
+            </>
+          ) : (
+            <>
+              <Moon className="h-4 w-4" />
+              <span>Modo escuro</span>
+            </>
+          )}
+        </Button>
+      </SidebarFooter>
     </Sidebar>
   );
 }
