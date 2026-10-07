@@ -46,14 +46,16 @@ interface ClientFormProps {
 const REGIME_TEMPLATES = {
   mei: [
     { name: "DAS - Simples Nacional", defaultDay: 20 },
-    { name: "DASN-SIMEI", defaultDay: 31 },
+    // V2: obrigações anuais precisam de campo de mês de vencimento.
+    // { name: "DASN-SIMEI", defaultDay: 31 },
   ],
   simples: [
     { name: "DAS - Simples Nacional", defaultDay: 20 },
     { name: "Folha de Pagamento", defaultDay: 5 },
     { name: "FGTS Digital", defaultDay: 20 },
     { name: "INSS", defaultDay: 20 },
-    { name: "DEFIS", defaultDay: 31 },
+    // V2: obrigações anuais precisam de campo de mês de vencimento.
+    // { name: "DEFIS", defaultDay: 31 },
   ],
   lucro_presumido: [
     { name: "IRPJ/CSLL", defaultDay: 30 },
@@ -297,27 +299,29 @@ export function ClientForm({ client, onSubmit, onCancel }: ClientFormProps) {
         {isCreating && obligationTypes && obligationTypes.length > 0 && (
           <div className="pt-2 border-t mt-4">
             <div className="space-y-1 mb-3">
-              <h4 className="text-sm font-medium leading-none">Obrigações comuns deste regime</h4>
+              <h4 className="text-sm font-medium leading-none">Obrigações deste cliente</h4>
               <p className="text-[0.8rem] text-muted-foreground">
                 Selecione as obrigações que devem ser criadas junto com este cliente.
               </p>
             </div>
             
-            <div className="border rounded-md max-h-64 overflow-y-auto p-3 space-y-3 bg-muted/20">
+            <div className="border rounded-md max-h-[40vh] overflow-y-auto p-3 space-y-3 bg-muted/20">
               {obligationTypes.map((ob) => {
                 const isSelected = selectedObs[ob.id]?.selected || false;
                 const dueDay = selectedObs[ob.id]?.due_day || 30;
 
                 return (
-                  <div key={ob.id} className="flex items-center justify-between gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        id={`ob-${ob.id}`}
-                        checked={isSelected}
-                        onChange={(e) => toggleObligation(ob.id, e.target.checked)}
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary accent-primary"
-                      />
+                  <div key={ob.id} className="flex flex-wrap items-center justify-between gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-3 flex-1 min-w-[200px]">
+                      <div className="flex items-center justify-center min-w-[44px] min-h-[44px] -ml-2">
+                        <input
+                          type="checkbox"
+                          id={`ob-${ob.id}`}
+                          checked={isSelected}
+                          onChange={(e) => toggleObligation(ob.id, e.target.checked)}
+                          className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary accent-primary cursor-pointer"
+                        />
+                      </div>
                       <label 
                         htmlFor={`ob-${ob.id}`}
                         className="text-sm font-medium cursor-pointer select-none"
@@ -335,7 +339,7 @@ export function ClientForm({ client, onSubmit, onCancel }: ClientFormProps) {
                         value={dueDay}
                         onChange={(e) => changeDueDay(ob.id, parseInt(e.target.value) || 1)}
                         disabled={!isSelected}
-                        className="w-16 h-8 text-center text-sm"
+                        className="w-16 h-11 text-center text-base md:text-sm min-h-[44px]"
                       />
                     </div>
                   </div>

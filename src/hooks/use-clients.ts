@@ -92,17 +92,23 @@ export function useCreateClient() {
           .from('client_obligations')
           .insert(obsToInsert);
 
+        let obligationsFailed = false;
         if (obsError) {
           console.error('Erro ao inserir obrigações:', obsError);
+          obligationsFailed = true;
           // Non-blocking for the client creation, but log it
         }
       }
 
-      return newClient;
+      return { client: newClient, obligationsFailed };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
-      toast.success('Cliente criado com sucesso!');
+      if (data.obligationsFailed) {
+        toast.warning('Cliente criado, mas as obrigações não foram salvas. Adicione na aba Obrigações.');
+      } else {
+        toast.success('Cliente criado com sucesso!');
+      }
     },
     onError: (error) => {
       console.error(error);

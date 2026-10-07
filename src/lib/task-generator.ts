@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { format, lastDayOfMonth } from 'date-fns';
 
 export async function generateTasksForMonth(monthDate: Date, clientId?: string) {
-  const referenceMonth = format(monthDate, 'yyyy-MM');
+  const referenceMonth = format(monthDate, 'yyyy-MM-01');
   const monthYear = monthDate.getFullYear();
   const monthMonth = monthDate.getMonth(); // 0-indexed
 
@@ -11,11 +11,12 @@ export async function generateTasksForMonth(monthDate: Date, clientId?: string) 
   if (userError) throw userError;
   const userId = userData.user.id;
 
-  // 2. Fetch active client obligations
+  // 2. Fetch active client obligations for active clients
   let query = supabase
     .from('client_obligations')
-    .select('*')
-    .eq('is_active', true);
+    .select('*, clients!inner(id, is_active)')
+    .eq('is_active', true)
+    .eq('clients.is_active', true);
     
   if (clientId) {
     query = query.eq('client_id', clientId);
@@ -23,7 +24,7 @@ export async function generateTasksForMonth(monthDate: Date, clientId?: string) 
 
   const { data: obligations, error: obsError } = await query;
   if (obsError) throw obsError;
-  if (!obligations || obligations.length === 0) return 0;
+  if (!obligations || obligations.length === 0) return -1;
 
   // 3. Fetch existing tasks for this reference_month
   let existingTasksQuery = supabase
