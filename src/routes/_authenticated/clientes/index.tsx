@@ -60,8 +60,8 @@ function ClientesRoute() {
     return filtered;
   }, [clients, search, activeFilter]);
 
-  const handleCreateSubmit = (data: any) => {
-    createClient(data, {
+  const handleCreateSubmit = (data: any, obligations?: any) => {
+    createClient({ client: data, obligations }, {
       onSuccess: () => {
         setIsDialogOpen(false);
       }
