@@ -1,4 +1,4 @@
-import { Home, Users, Calendar, ShieldAlert, Settings, Sun, Moon } from "lucide-react";
+import { Home, Users, Calendar, ShieldAlert, Settings, Sun, Moon, ClipboardList } from "lucide-react";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   Sidebar,
@@ -17,6 +17,7 @@ import { useTheme } from "@/lib/theme-provider";
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: Home },
+  { title: "Tarefas", url: "/tarefas", icon: ClipboardList },
   { title: "Clientes", url: "/clientes", icon: Users },
   { title: "Calendário", url: "/calendario", icon: Calendar },
   { title: "Retenções", url: "/retencoes", icon: ShieldAlert },

@@ -88,3 +88,26 @@ export function useUndoCompleteTask() {
     }
   });
 }
+
+export function useDeleteTask() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      toast.success('Tarefa excluída com sucesso!');
+    },
+    onError: (error) => {
+      console.error(error);
+      toast.error('Erro ao excluir tarefa.');
+    }
+  });
+}

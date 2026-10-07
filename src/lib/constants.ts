@@ -36,6 +36,7 @@ export const APP_CONFIG = {
 
 export const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: 'LayoutDashboard' },
+  { path: '/tarefas', label: 'Tarefas', icon: 'ClipboardList' },
   { path: '/clientes', label: 'Clientes', icon: 'Users' },
   { path: '/calendario', label: 'Calendário', icon: 'Calendar' },
   { path: '/retencoes', label: 'Retenções', icon: 'Hand' },

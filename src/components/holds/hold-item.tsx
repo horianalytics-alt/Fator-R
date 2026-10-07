@@ -3,9 +3,12 @@ import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Lock, Unlock, AlertTriangle, Calendar } from 'lucide-react';
-import { useReleaseHold } from '@/hooks/use-holds';
+import { useReleaseHold, useDeleteHold } from '@/hooks/use-holds';
 import type { Hold } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { ConfirmModal } from '@/components/shared/confirm-modal';
+import { useState } from 'react';
+import { Trash2 } from 'lucide-react';
 
 interface HoldItemProps {
   hold: Hold & { clients?: { name: string } };
@@ -14,6 +17,8 @@ interface HoldItemProps {
 
 export function HoldItem({ hold, showClient = false }: HoldItemProps) {
   const { mutate: releaseHold, isPending } = useReleaseHold();
+  const { mutate: deleteHold, isPending: isDeleting } = useDeleteHold();
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   const handleRelease = () => {
     releaseHold(hold.id);
@@ -74,23 +79,44 @@ export function HoldItem({ hold, showClient = false }: HoldItemProps) {
         </div>
       </div>
 
-      {hold.status === 'retido' && (
+      <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 mt-4 sm:mt-0">
+        {hold.status === 'retido' && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRelease}
+            disabled={isPending}
+            className="shrink-0 w-full sm:w-auto"
+          >
+            <Unlock className="h-4 w-4 mr-2" />
+            Liberar Documento
+          </Button>
+        )}
+        {hold.status === 'liberado' && (
+          <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400">
+            Liberado
+          </Badge>
+        )}
         <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleRelease}
-          disabled={isPending}
-          className="shrink-0"
+          variant="ghost" 
+          size="icon" 
+          onClick={() => setIsDeleteOpen(true)}
+          className="text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0 self-end sm:self-auto"
         >
-          <Unlock className="h-4 w-4 mr-2" />
-          Liberar Documento
+          <Trash2 className="h-4 w-4" />
         </Button>
-      )}
-      {hold.status === 'liberado' && (
-        <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400">
-          Liberado
-        </Badge>
-      )}
+      </div>
+
+      <ConfirmModal
+        open={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
+        title="Confirmar ação"
+        description="Deseja realmente excluir esta retenção? Essa ação não pode ser desfeita."
+        confirmText="Sim, excluir"
+        confirmVariant="destructive"
+        onConfirm={() => deleteHold(hold.id)}
+        isPending={isDeleting}
+      />
     </div>
   );
 }

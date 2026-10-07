@@ -101,3 +101,28 @@ export function useReleaseHold() {
     },
   });
 }
+
+export function useDeleteHold() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('holds')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting hold:', error);
+        throw new Error('Falha ao excluir retenção');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['holds'] });
+      toast.success('Retenção excluída!');
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+}

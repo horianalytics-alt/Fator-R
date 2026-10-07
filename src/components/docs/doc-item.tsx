@@ -3,9 +3,12 @@ import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FileText, CheckCircle2, Clock } from 'lucide-react';
-import { useUpdatePendingDoc } from '@/hooks/use-pending-docs';
+import { useUpdatePendingDoc, useDeletePendingDoc } from '@/hooks/use-pending-docs';
 import type { PendingDoc } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { ConfirmModal } from '@/components/shared/confirm-modal';
+import { useState } from 'react';
+import { Trash2 } from 'lucide-react';
 
 interface DocItemProps {
   doc: PendingDoc;
@@ -13,6 +16,8 @@ interface DocItemProps {
 
 export function DocItem({ doc }: DocItemProps) {
   const { mutate: updateDoc, isPending } = useUpdatePendingDoc();
+  const { mutate: deleteDoc, isPending: isDeleting } = useDeletePendingDoc();
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   const handleMarkAsReceived = () => {
     updateDoc({ id: doc.id, status: 'recebido' });
@@ -54,21 +59,42 @@ export function DocItem({ doc }: DocItemProps) {
         </div>
       </div>
 
-      {doc.status === 'aguardando' && (
+      <div className="flex items-center gap-2">
+        {doc.status === 'aguardando' && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleMarkAsReceived}
+            disabled={isPending}
+          >
+            Marcar como Recebido
+          </Button>
+        )}
+        {doc.status === 'recebido' && (
+          <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400">
+            Recebido
+          </Badge>
+        )}
         <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleMarkAsReceived}
-          disabled={isPending}
+          variant="ghost" 
+          size="icon" 
+          onClick={() => setIsDeleteOpen(true)}
+          className="text-destructive hover:text-destructive hover:bg-destructive/10"
         >
-          Marcar como Recebido
+          <Trash2 className="h-4 w-4" />
         </Button>
-      )}
-      {doc.status === 'recebido' && (
-        <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400">
-          Recebido
-        </Badge>
-      )}
+      </div>
+
+      <ConfirmModal
+        open={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
+        title="Confirmar ação"
+        description="Deseja realmente excluir este documento pendente? Essa ação não pode ser desfeita."
+        confirmText="Sim, excluir"
+        confirmVariant="destructive"
+        onConfirm={() => deleteDoc(doc.id)}
+        isPending={isDeleting}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Trash2, Plus } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { ConfirmModal } from '@/components/shared/confirm-modal';
 
 interface ClientObligationsProps {
   clientId: string;
@@ -17,6 +18,7 @@ export function ClientObligations({ clientId, obligations }: ClientObligationsPr
 
   const [selectedTypeId, setSelectedTypeId] = useState<string>('');
   const [dueDay, setDueDay] = useState<string>('');
+  const [obligationToRemove, setObligationToRemove] = useState<string | null>(null);
 
   const handleAdd = () => {
     if (!selectedTypeId || !dueDay) return;
@@ -34,8 +36,14 @@ export function ClientObligations({ clientId, obligations }: ClientObligationsPr
   };
 
   const handleRemove = (id: string) => {
-    if (confirm('Tem certeza que deseja remover esta obrigação?')) {
-      removeMutation.mutate(id);
+    setObligationToRemove(id);
+  };
+
+  const confirmRemove = () => {
+    if (obligationToRemove) {
+      removeMutation.mutate(obligationToRemove, {
+        onSettled: () => setObligationToRemove(null)
+      });
     }
   };
 
@@ -121,6 +129,16 @@ export function ClientObligations({ clientId, obligations }: ClientObligationsPr
           </tbody>
         </table>
       </div>
+
+      <ConfirmModal
+        open={!!obligationToRemove}
+        onOpenChange={(open) => !open && setObligationToRemove(null)}
+        title="Confirmar ação"
+        description="Deseja realmente remover esta obrigação? Essa ação não pode ser desfeita."
+        confirmText="Sim, remover"
+        onConfirm={confirmRemove}
+        isPending={removeMutation.isPending}
+      />
     </div>
   );
 }

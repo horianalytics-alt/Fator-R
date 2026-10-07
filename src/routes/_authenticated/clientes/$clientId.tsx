@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useClient, useUpdateClient } from '@/hooks/use-clients';
+import { useClient, useUpdateClient, useDeleteClient } from '@/hooks/use-clients';
 import { ClientForm } from '@/components/clients/client-form';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { ConfirmModal } from '@/components/shared/confirm-modal';
 import { ArrowLeft, Building2, AlertCircle, CheckCircle2, Phone, Mail, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useClientObligations } from '@/hooks/use-obligations';
@@ -46,7 +47,17 @@ function ClientDetailRoute() {
   
   const { data: client, isLoading, error } = useClient(clientId);
   const { mutate: updateClient } = useUpdateClient();
+  const deleteClientMutation = useDeleteClient();
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+
+  const handleDeleteClient = () => {
+    deleteClientMutation.mutate(clientId, {
+      onSuccess: () => {
+        navigate({ to: '/clientes' });
+      }
+    });
+  };
 
   const currentDate = new Date();
   const currentMonthStr = format(currentDate, 'yyyy-MM-01');
@@ -240,6 +251,27 @@ function ClientDetailRoute() {
           <p className="text-sm whitespace-pre-wrap">{client.notes}</p>
         </div>
       )}
+
+      <div className="flex justify-center mt-8 pt-4 border-t">
+        <Button 
+          variant="outline" 
+          className="text-destructive border-destructive hover:bg-destructive hover:text-white"
+          onClick={() => setIsDeleteOpen(true)}
+        >
+          Excluir cliente
+        </Button>
+      </div>
+
+      <ConfirmModal
+        open={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
+        title="Confirmar ação"
+        description={`Deseja realmente excluir ${client.name}? Todas as obrigações, tarefas, documentos e retenções deste cliente serão removidos permanentemente.`}
+        confirmText="Sim, excluir cliente"
+        confirmVariant="destructive"
+        onConfirm={handleDeleteClient}
+        isPending={deleteClientMutation.isPending}
+      />
     </div>
   );
 }

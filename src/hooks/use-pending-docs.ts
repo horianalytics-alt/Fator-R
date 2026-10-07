@@ -106,3 +106,28 @@ export function useUpdatePendingDoc() {
     },
   });
 }
+
+export function useDeletePendingDoc() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('pending_docs')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting pending doc:', error);
+        throw new Error('Falha ao excluir documento pendente');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pending-docs'] });
+      toast.success('Documento pendente excluído!');
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+}

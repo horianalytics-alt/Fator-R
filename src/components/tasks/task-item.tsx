@@ -5,7 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { CheckCircle2, Circle } from 'lucide-react';
 import { useAddHold } from '@/hooks/use-holds';
+import { useDeleteTask } from '@/hooks/use-tasks';
+import { ConfirmModal } from '@/components/shared/confirm-modal';
 import { Button } from '@/components/ui/button';
+import { Trash2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -25,21 +28,32 @@ export function TaskItem({ task, onComplete, onUndo }: TaskItemProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const isCompleted = task.status === 'concluida';
   const obligationName = task.client_obligations?.obligation_types?.name || 'Obrigação';
-  const isOverdue = !isCompleted && new Date(task.due_date) < new Date(new Date().setHours(0, 0, 0, 0));
+  const dueTime = new Date(task.due_date).setHours(0, 0, 0, 0);
+  const todayTime = new Date().setHours(0, 0, 0, 0);
+  const diffTime = dueTime - todayTime;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  const isOverdue = !isCompleted && diffDays < 0;
+  const isToday = !isCompleted && diffDays === 0;
+  const isNext3Days = !isCompleted && diffDays > 0 && diffDays <= 3;
   
   // If task has clients object joined, check payment_status
   const isDevedor = task.clients?.payment_status === 'devedor';
   const clientName = task.clients?.name;
   const addHold = useAddHold();
+  const deleteTask = useDeleteTask();
+
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isDeleteTaskOpen, setIsDeleteTaskOpen] = useState(false);
 
   const handleToggleClick = () => {
     if (isCompleted && onUndo) {
-      onUndo(task.id);
+      setIsConfirmModalOpen(true);
     } else if (!isCompleted) {
       if (isDevedor) {
         setIsModalOpen(true);
       } else {
-        onComplete(task.id);
+        setIsConfirmModalOpen(true);
       }
     }
   };
@@ -64,7 +78,9 @@ export function TaskItem({ task, onComplete, onUndo }: TaskItemProps) {
       <div className={cn(
         "flex items-center justify-between p-4 border rounded-lg transition-colors",
         isCompleted ? "bg-muted/50" : "bg-card hover:bg-muted/10",
-        isOverdue && !isCompleted && "border-destructive/50 bg-destructive/5"
+        isOverdue && "border-destructive/50 bg-destructive/5",
+        isToday && "border-orange-500/50 bg-orange-500/5",
+        isNext3Days && "border-yellow-500/50 bg-yellow-500/5"
       )}>
         <div className="flex items-center gap-4 flex-1 min-w-0">
           <button 
@@ -89,9 +105,16 @@ export function TaskItem({ task, onComplete, onUndo }: TaskItemProps) {
             </h4>
             <div className="flex items-center gap-2">
               {clientName && (
-                <span className="text-xs text-muted-foreground font-medium truncate max-w-[120px] sm:max-w-[200px]" title={clientName}>
-                  {clientName}
-                </span>
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-xs text-muted-foreground font-medium truncate max-w-[120px] sm:max-w-[200px]" title={clientName}>
+                    {clientName}
+                  </span>
+                  {isDevedor && (
+                    <Badge variant="destructive" className="text-[10px] uppercase px-1.5 py-0 h-4 shrink-0 font-bold tracking-wider">
+                      Devedor
+                    </Badge>
+                  )}
+                </div>
               )}
               <p className="text-xs text-muted-foreground shrink-0">
                 Venc.: {format(new Date(task.due_date), "dd/MM", { locale: ptBR })}
@@ -109,11 +132,27 @@ export function TaskItem({ task, onComplete, onUndo }: TaskItemProps) {
             <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-500/20">
               Atrasada
             </Badge>
-          ) : (
+          ) : isToday ? (
+            <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-500/20">
+              Hoje
+            </Badge>
+          ) : isNext3Days ? (
             <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
+              Vencendo
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="bg-muted text-muted-foreground border-border">
               Pendente
             </Badge>
           )}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => setIsDeleteTaskOpen(true)}
+            className="text-destructive hover:text-destructive hover:bg-destructive/10 -mr-2"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -151,6 +190,33 @@ export function TaskItem({ task, onComplete, onUndo }: TaskItemProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmModal
+        open={isConfirmModalOpen}
+        onOpenChange={setIsConfirmModalOpen}
+        title="Confirmar ação"
+        description={isCompleted ? "Deseja desmarcar esta tarefa como concluída?" : "Deseja concluir esta tarefa?"}
+        confirmText={isCompleted ? "Sim, desmarcar" : "Sim, concluir"}
+        confirmVariant={isCompleted ? "destructive" : "default"}
+        onConfirm={() => {
+          if (isCompleted && onUndo) {
+            onUndo(task.id);
+          } else {
+            onComplete(task.id);
+          }
+        }}
+      />
+
+      <ConfirmModal
+        open={isDeleteTaskOpen}
+        onOpenChange={setIsDeleteTaskOpen}
+        title="Confirmar ação"
+        description="Deseja realmente excluir esta tarefa? Essa ação não pode ser desfeita."
+        confirmText="Sim, excluir"
+        confirmVariant="destructive"
+        onConfirm={() => deleteTask.mutate(task.id)}
+        isPending={deleteTask.isPending}
+      />
     </>
   );
 }

@@ -1,9 +1,10 @@
-import { Home, Users, Calendar, ShieldAlert } from "lucide-react";
+import { Home, Users, Calendar, ShieldAlert, ClipboardList } from "lucide-react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 
 const mobileNavItems = [
   { title: "Dashboard", url: "/", icon: Home },
+  { title: "Tarefas", url: "/tarefas", icon: ClipboardList },
   { title: "Clientes", url: "/clientes", icon: Users },
   { title: "Calendário", url: "/calendario", icon: Calendar },
   { title: "Retenções", url: "/retencoes", icon: ShieldAlert },

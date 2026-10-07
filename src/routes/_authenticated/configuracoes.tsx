@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ConfirmModal } from "@/components/shared/confirm-modal";
 import type { ObligationType } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
@@ -88,9 +89,17 @@ function ConfiguracoesRoute() {
     });
   };
 
+  const [deleteData, setDeleteData] = useState<{id: string, name: string} | null>(null);
+
   const handleDeleteType = (id: string, name: string) => {
-    if (confirm(`Tem certeza que deseja excluir o tipo de obrigação "${name}"?`)) {
-      deleteObligationType.mutate(id);
+    setDeleteData({ id, name });
+  };
+
+  const confirmDelete = () => {
+    if (deleteData) {
+      deleteObligationType.mutate(deleteData.id, {
+        onSettled: () => setDeleteData(null)
+      });
     }
   };
 
@@ -272,6 +281,16 @@ function ConfiguracoesRoute() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <ConfirmModal
+        open={!!deleteData}
+        onOpenChange={(open) => !open && setDeleteData(null)}
+        title="Confirmar ação"
+        description={`Deseja realmente excluir o tipo de obrigação "${deleteData?.name}"? Essa ação não pode ser desfeita.`}
+        confirmText="Sim, excluir"
+        onConfirm={confirmDelete}
+        isPending={deleteObligationType.isPending}
+      />
     </div>
   );
 }
