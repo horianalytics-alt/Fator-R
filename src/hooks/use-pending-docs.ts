@@ -46,9 +46,9 @@ export function useAddPendingDoc() {
           user_id: userData.user.id,
           client_id: doc.client_id,
           description: doc.description,
-          reference_month: doc.reference_month || null,
+          reference_month: doc.reference_month ? `${doc.reference_month}-01` : null,
           status: 'aguardando',
-          requested_at: new Date().toISOString(),
+          requested_at: new Date().toISOString().split('T')[0],
         })
         .select()
         .single();
@@ -78,7 +78,7 @@ export function useUpdatePendingDoc() {
       const updates: any = { status };
       
       if (status === 'recebido') {
-        updates.received_at = new Date().toISOString();
+        updates.received_at = new Date().toISOString().split('T')[0];
       } else {
         updates.received_at = null;
       }
