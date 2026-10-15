@@ -48,7 +48,7 @@ export function useAddHold() {
           document_description: hold.document_description,
           reason: hold.reason,
           status: 'retido',
-          held_since: new Date().toISOString(),
+          held_since: new Date().toISOString().split('T')[0],
         })
         .select()
         .single();
@@ -79,7 +79,7 @@ export function useReleaseHold() {
         .from('holds')
         .update({
           status: 'liberado',
-          released_at: new Date().toISOString(),
+          released_at: new Date().toISOString().split('T')[0],
         })
         .eq('id', id)
         .select()

@@ -14,8 +14,10 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { ConfirmModal } from '@/components/shared/confirm-modal';
-import { ArrowLeft, Building2, AlertCircle, CheckCircle2, Phone, Mail, FileText } from 'lucide-react';
+import { ArrowLeft, Building2, AlertCircle, CheckCircle2, Phone, Mail, FileText, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { WhatsAppCobrancaModal } from '@/components/clients/whatsapp-cobranca-modal';
+import { getWhatsAppUrl } from '@/lib/whatsapp-utils';
 import { useClientObligations } from '@/hooks/use-obligations';
 import { useTasks } from '@/hooks/use-tasks';
 import { ClientObligations } from '@/components/clients/client-obligations';
@@ -50,6 +52,7 @@ function ClientDetailRoute() {
   const deleteClientMutation = useDeleteClient();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isCobrancaOpen, setIsCobrancaOpen] = useState(false);
 
   const handleDeleteClient = () => {
     deleteClientMutation.mutate(clientId, {
@@ -118,21 +121,48 @@ function ClientDetailRoute() {
             </div>
           </div>
           
-          <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">Editar Cliente</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Editar Cliente</DialogTitle>
-              </DialogHeader>
-              <ClientForm 
-                client={client}
-                onSubmit={handleUpdateSubmit} 
-                onCancel={() => setIsEditOpen(false)} 
-              />
-            </DialogContent>
-          </Dialog>
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            {client.phone && (
+              <Button 
+                variant="outline"
+                className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 gap-1.5 h-9"
+                onClick={() => window.open(getWhatsAppUrl(client.phone), '_blank', 'noopener,noreferrer')}
+                title="Abrir WhatsApp com o cliente"
+              >
+                <MessageCircle className="h-4 w-4" />
+                <span>WhatsApp</span>
+              </Button>
+            )}
+
+            <Button
+              variant={isDevedor ? "destructive" : "outline"}
+              className={cn(
+                "gap-1.5 font-medium h-9",
+                !isDevedor && "text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30 border-amber-300 dark:border-amber-800"
+              )}
+              onClick={() => setIsCobrancaOpen(true)}
+              title="Gerar aviso de suspensão e cobrança para envio via WhatsApp"
+            >
+              <AlertCircle className="h-4 w-4" />
+              <span>Aviso de Cobrança</span>
+            </Button>
+            
+            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="h-9">Editar Cliente</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Editar Cliente</DialogTitle>
+                </DialogHeader>
+                <ClientForm 
+                  client={client}
+                  onSubmit={handleUpdateSubmit} 
+                  onCancel={() => setIsEditOpen(false)} 
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
       </div>
 
@@ -141,8 +171,21 @@ function ClientDetailRoute() {
           <span className="text-sm text-muted-foreground flex items-center gap-2"><FileText className="h-4 w-4"/> Documento</span>
           <span className="font-medium">{client.document || "Não informado"}</span>
         </div>
-        <div className="bg-card border rounded-lg p-4 flex flex-col gap-1">
-          <span className="text-sm text-muted-foreground flex items-center gap-2"><Phone className="h-4 w-4"/> Telefone</span>
+        <div className="bg-card border rounded-lg p-4 flex flex-col justify-between gap-1">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground flex items-center gap-2"><Phone className="h-4 w-4"/> Telefone</span>
+            {client.phone && (
+              <button
+                type="button"
+                onClick={() => window.open(getWhatsAppUrl(client.phone), '_blank', 'noopener,noreferrer')}
+                className="text-emerald-600 hover:text-emerald-700 flex items-center gap-1 text-xs font-medium hover:underline"
+                title="Conversar no WhatsApp"
+              >
+                <MessageCircle className="h-3.5 w-3.5" />
+                WhatsApp
+              </button>
+            )}
+          </div>
           <span className="font-medium">{client.phone || "Não informado"}</span>
         </div>
         <div className="bg-card border rounded-lg p-4 flex flex-col gap-1">
@@ -271,6 +314,12 @@ function ClientDetailRoute() {
         confirmVariant="destructive"
         onConfirm={handleDeleteClient}
         isPending={deleteClientMutation.isPending}
+      />
+
+      <WhatsAppCobrancaModal
+        client={client}
+        open={isCobrancaOpen}
+        onOpenChange={setIsCobrancaOpen}
       />
     </div>
   );

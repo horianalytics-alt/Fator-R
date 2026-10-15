@@ -20,7 +20,7 @@ export function useOverdueTasks() {
         `)
         .lt('due_date', today)
         .neq('status', 'concluida')
-        .gte('reference_month', firstDayOfMonth)
+        
         .order('due_date', { ascending: true });
 
       if (error) throw error;
@@ -50,7 +50,7 @@ export function useUpcomingTasks() {
         .gte('due_date', today)
         .lte('due_date', limitDate)
         .neq('status', 'concluida')
-        .gte('reference_month', firstDayOfMonth)
+        
         .order('due_date', { ascending: true });
 
       if (error) throw error;

@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ConfirmModal } from "@/components/shared/confirm-modal";
+import { PixSettingsCard } from "@/components/config/pix-settings-card";
 import type { ObligationType } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
@@ -125,6 +126,8 @@ function ConfiguracoesRoute() {
           </Button>
         </CardContent>
       </Card>
+
+      <PixSettingsCard />
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
