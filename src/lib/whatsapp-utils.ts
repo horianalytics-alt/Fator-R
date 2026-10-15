@@ -54,11 +54,15 @@ export function buildSuspensionMessage({
   const safeClientName = clientName ? clientName.trim() : 'Prezado(a) Cliente';
   const safeMotivo = motivo ? motivo.trim() : 'mensalidade de honorários em atraso';
 
-  return `🤖 *MENSAGEM AUTOMÁTICA – FATOR R*
+  const robo = '\u{1F916}';
+  const alerta = '\u{26A0}\u{FE0F}';
+  const pin = '\u{1F4CC}';
+
+  return `${robo} *MENSAGEM AUTOMÁTICA – FATOR R*
 
 Olá, *${safeClientName}*.
 
-⚠️ *AVISO DE SUSPENSÃO DOS SERVIÇOS CONTÁBEIS*
+${alerta} *AVISO DE SUSPENSÃO DOS SERVIÇOS CONTÁBEIS*
 
 O FATOR R identificou *${safeMotivo}*.
 
@@ -68,24 +72,25 @@ Durante o período de suspensão, não serão realizados serviços, transmissõe
 
 Caso os pagamentos já tenham sido realizados, por favor, encaminhe os comprovantes para que possamos realizar a baixa e *restabelecer os serviços*.
 
-📌 *DADOS PARA PAGAMENTO*
+${pin} *DADOS PARA PAGAMENTO*
 
 PIX – ${pixSettings.keyType}: ${pixSettings.pixKey}
 Favorecido: ${pixSettings.recipient}
 
-🤖 _Mensagem enviada automaticamente pela FATOR R._`;
+${robo} _Mensagem enviada automaticamente pela FATOR R._`;
 }
 
 /**
- * Gera o link universal do WhatsApp (compatível com Web e Mobile App)
+ * Gera o link do WhatsApp compatível sem corromper emojis no redirecionamento.
+ * Utiliza o endpoint oficial 'api.whatsapp.com/send' em vez do 'wa.me' que possui bug de charset em emojis.
  */
 export function getWhatsAppUrl(phone: string, text?: string): string {
   const cleanPhone = formatPhoneForWhatsApp(phone);
   if (!cleanPhone) return '';
 
   if (!text) {
-    return `https://wa.me/${cleanPhone}`;
+    return `https://api.whatsapp.com/send?phone=${cleanPhone}`;
   }
 
-  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+  return `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`;
 }
