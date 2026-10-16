@@ -23,6 +23,14 @@ import {
 } from "@/components/ui/select";
 import { Client } from "@/lib/types";
 import { useObligationTypes } from "@/hooks/use-obligations";
+import { 
+  extractContactsFromNotes, 
+  extractCleanNotes, 
+  combineNotesAndContacts, 
+  ClientContact 
+} from "@/lib/client-contacts-utils";
+import { Plus, Trash2, Users } from "lucide-react";
+import { Label } from "@/components/ui/label";
 
 const clientFormSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
@@ -79,6 +87,9 @@ const REGIME_TEMPLATES = {
 export function ClientForm({ client, onSubmit, onCancel }: ClientFormProps) {
   const { data: obligationTypes } = useObligationTypes();
   const [selectedObs, setSelectedObs] = useState<Record<string, { selected: boolean; due_day: number }>>({});
+  const [contacts, setContacts] = useState<ClientContact[]>(() => {
+    return extractContactsFromNotes(client?.notes);
+  });
 
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientFormSchema),
@@ -90,9 +101,26 @@ export function ClientForm({ client, onSubmit, onCancel }: ClientFormProps) {
       tax_regime: client?.tax_regime || "simples",
       is_active: client !== undefined ? client.is_active : true,
       payment_status: client?.payment_status || "em_dia",
-      notes: client?.notes || "",
+      notes: extractCleanNotes(client?.notes),
     },
   });
+
+  const handleAddContact = () => {
+    setContacts((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), name: '', role: 'Sócio', phone: '' },
+    ]);
+  };
+
+  const handleUpdateContact = (id: string, field: keyof ClientContact, value: string) => {
+    setContacts((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, [field]: value } : c))
+    );
+  };
+
+  const handleRemoveContact = (id: string) => {
+    setContacts((prev) => prev.filter((c) => c.id !== id));
+  };
 
   const taxRegime = form.watch("tax_regime");
   const isCreating = !client;
@@ -130,7 +158,8 @@ export function ClientForm({ client, onSubmit, onCancel }: ClientFormProps) {
         }));
     }
 
-    onSubmit(data, finalObligations);
+    const finalNotes = combineNotesAndContacts(data.notes || '', contacts);
+    onSubmit({ ...data, notes: finalNotes }, finalObligations);
   };
 
   const toggleObligation = (id: string, checked: boolean) => {
@@ -184,7 +213,7 @@ export function ClientForm({ client, onSubmit, onCancel }: ClientFormProps) {
             name="phone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Telefone</FormLabel>
+                <FormLabel>Telefone Principal (Empresa)</FormLabel>
                 <FormControl>
                   <Input placeholder="(00) 00000-0000" {...field} />
                 </FormControl>
@@ -207,6 +236,89 @@ export function ClientForm({ client, onSubmit, onCancel }: ClientFormProps) {
             </FormItem>
           )}
         />
+
+        {/* SEÇÃO DINÂMICA DE SÓCIOS E CONTATOS EXTRAS */}
+        <div className="space-y-3 p-3.5 border rounded-lg bg-muted/20">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <Label className="text-sm font-semibold flex items-center gap-1.5">
+                <Users className="h-4 w-4 text-primary" />
+                Sócios e Contatos Adicionais (WhatsApp)
+              </Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Adicione sócios para envio de mensagens direcionadas e cobranças.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAddContact}
+              className="gap-1.5 text-xs h-9 min-h-[36px] sm:min-h-0"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Adicionar Sócio / Contato
+            </Button>
+          </div>
+
+          {contacts.length === 0 ? (
+            <div className="text-xs text-muted-foreground italic bg-background/50 border border-dashed rounded p-3 text-center">
+              Nenhum sócio adicional cadastrado. Clique no botão acima para adicionar.
+            </div>
+          ) : (
+            <div className="space-y-2.5 pt-1">
+              {contacts.map((contact) => (
+                <div
+                  key={contact.id}
+                  className="p-3 bg-background border rounded-lg grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end shadow-xs"
+                >
+                  <div className="sm:col-span-4 space-y-1">
+                    <Label className="text-[11px] font-medium text-muted-foreground">Nome do Sócio / Contato *</Label>
+                    <Input
+                      placeholder="Ex: Roberto Silva"
+                      value={contact.name}
+                      onChange={(e) => handleUpdateContact(contact.id, 'name', e.target.value)}
+                      className="h-9 text-xs"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-3 space-y-1">
+                    <Label className="text-[11px] font-medium text-muted-foreground">Cargo / Função</Label>
+                    <Input
+                      placeholder="Ex: Sócio, Financeiro"
+                      value={contact.role || ''}
+                      onChange={(e) => handleUpdateContact(contact.id, 'role', e.target.value)}
+                      className="h-9 text-xs"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-4 space-y-1">
+                    <Label className="text-[11px] font-medium text-muted-foreground">WhatsApp com DDD *</Label>
+                    <Input
+                      placeholder="Ex: (11) 98888-7777"
+                      value={contact.phone}
+                      onChange={(e) => handleUpdateContact(contact.id, 'phone', e.target.value)}
+                      className="h-9 text-xs"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-1 flex justify-end">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveContact(contact.id)}
+                      className="h-9 w-9 text-destructive hover:bg-destructive/10 shrink-0"
+                      title="Remover este contato"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField

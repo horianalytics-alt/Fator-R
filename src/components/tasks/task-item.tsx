@@ -3,12 +3,11 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { CheckCircle2, Circle } from 'lucide-react';
+import { CheckCircle2, Circle, Trash2, Zap } from 'lucide-react';
 import { useAddHold } from '@/hooks/use-holds';
 import { useDeleteTask } from '@/hooks/use-tasks';
 import { ConfirmModal } from '@/components/shared/confirm-modal';
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -27,7 +26,8 @@ interface TaskItemProps {
 export function TaskItem({ task, onComplete, onUndo }: TaskItemProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const isCompleted = task.status === 'concluida';
-  const obligationName = task.client_obligations?.obligation_types?.name || 'Obrigação';
+  const isQuickTask = !task.client_obligation_id || !!task.title;
+  const obligationName = task.title || task.client_obligations?.obligation_types?.name || task.notes || 'Tarefa Avulsa';
   const dueTime = new Date(task.due_date).setHours(0, 0, 0, 0);
   const todayTime = new Date().setHours(0, 0, 0, 0);
   const diffTime = dueTime - todayTime;
@@ -94,15 +94,23 @@ export function TaskItem({ task, onComplete, onUndo }: TaskItemProps) {
             )}
           </button>
           <div className="flex-1 min-w-0 pr-2">
-            <h4 
-              className={cn(
-                "font-medium text-sm md:text-base truncate",
-                isCompleted && "line-through text-muted-foreground"
+            <div className="flex items-center gap-2 flex-wrap">
+              <h4 
+                className={cn(
+                  "font-medium text-sm md:text-base truncate",
+                  isCompleted && "line-through text-muted-foreground"
+                )}
+                title={obligationName}
+              >
+                {obligationName}
+              </h4>
+              {isQuickTask && (
+                <Badge variant="outline" className="text-[10px] bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-800 shrink-0 font-medium px-1.5 py-0 h-4 flex items-center gap-0.5">
+                  <Zap className="h-2.5 w-2.5 fill-current" />
+                  Avulsa
+                </Badge>
               )}
-              title={obligationName}
-            >
-              {obligationName}
-            </h4>
+            </div>
             <div className="flex items-center gap-2">
               {clientName && (
                 <div className="flex items-center gap-2 min-w-0">

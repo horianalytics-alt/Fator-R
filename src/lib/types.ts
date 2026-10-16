@@ -119,8 +119,9 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
-          client_obligation_id: string;
+          client_obligation_id: string | null;
           client_id: string;
+          title: string | null;
           reference_month: string;
           due_date: string;
           status: TaskStatus;
@@ -132,8 +133,9 @@ export interface Database {
         Insert: {
           id?: string;
           user_id: string;
-          client_obligation_id: string;
+          client_obligation_id?: string | null;
           client_id: string;
+          title?: string | null;
           reference_month: string;
           due_date: string;
           status?: TaskStatus;
@@ -145,8 +147,9 @@ export interface Database {
         Update: {
           id?: string;
           user_id?: string;
-          client_obligation_id?: string;
+          client_obligation_id?: string | null;
           client_id?: string;
+          title?: string | null;
           reference_month?: string;
           due_date?: string;
           status?: TaskStatus;

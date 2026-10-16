@@ -39,6 +39,7 @@ export function formatPhoneForWhatsApp(phone: string | null | undefined): string
 
 export interface BuildSuspensionMessageParams {
   clientName: string;
+  partnerName?: string;
   motivo: string;
   pixSettings?: PixSettings;
 }
@@ -48,6 +49,7 @@ export interface BuildSuspensionMessageParams {
  */
 export function buildSuspensionMessage({
   clientName,
+  partnerName,
   motivo,
   pixSettings = DEFAULT_PIX_SETTINGS,
 }: BuildSuspensionMessageParams): string {
@@ -58,9 +60,14 @@ export function buildSuspensionMessage({
   const alerta = '\u{26A0}\u{FE0F}';
   const pin = '\u{1F4CC}';
 
+  let greeting = `Olá, *${safeClientName}*.`;
+  if (partnerName && partnerName.trim()) {
+    greeting = `Olá, *${partnerName.trim()}*. (Referente à empresa *${safeClientName}*)`;
+  }
+
   return `${robo} *MENSAGEM AUTOMÁTICA – FATOR R*
 
-Olá, *${safeClientName}*.
+${greeting}
 
 ${alerta} *AVISO DE SUSPENSÃO DOS SERVIÇOS CONTÁBEIS*
 

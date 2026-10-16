@@ -14,9 +14,11 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { ConfirmModal } from '@/components/shared/confirm-modal';
-import { ArrowLeft, Building2, AlertCircle, CheckCircle2, Phone, Mail, FileText, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Building2, AlertCircle, CheckCircle2, Phone, Mail, FileText, MessageCircle, Zap, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WhatsAppCobrancaModal } from '@/components/clients/whatsapp-cobranca-modal';
+import { QuickTaskModal } from '@/components/tasks/quick-task-modal';
+import { extractContactsFromNotes, extractCleanNotes } from '@/lib/client-contacts-utils';
 import { getWhatsAppUrl } from '@/lib/whatsapp-utils';
 import { useClientObligations } from '@/hooks/use-obligations';
 import { useTasks } from '@/hooks/use-tasks';
@@ -53,6 +55,7 @@ function ClientDetailRoute() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isCobrancaOpen, setIsCobrancaOpen] = useState(false);
+  const [isQuickTaskOpen, setIsQuickTaskOpen] = useState(false);
 
   const handleDeleteClient = () => {
     deleteClientMutation.mutate(clientId, {
@@ -95,6 +98,8 @@ function ClientDetailRoute() {
   }
 
   const isDevedor = client.payment_status === "devedor";
+  const partners = extractContactsFromNotes(client.notes);
+  const cleanNotes = extractCleanNotes(client.notes);
 
   const handleUpdateSubmit = (data: any) => {
     updateClient({ id: client.id, ...data }, {
@@ -171,22 +176,52 @@ function ClientDetailRoute() {
           <span className="text-sm text-muted-foreground flex items-center gap-2"><FileText className="h-4 w-4"/> Documento</span>
           <span className="font-medium">{client.document || "Não informado"}</span>
         </div>
-        <div className="bg-card border rounded-lg p-4 flex flex-col justify-between gap-1">
+        <div className="bg-card border rounded-lg p-4 flex flex-col justify-between gap-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground flex items-center gap-2"><Phone className="h-4 w-4"/> Telefone</span>
+            <span className="text-sm text-muted-foreground flex items-center gap-2">
+              <Phone className="h-4 w-4"/> Telefone Principal
+            </span>
             {client.phone && (
               <button
                 type="button"
                 onClick={() => window.open(getWhatsAppUrl(client.phone), '_blank', 'noopener,noreferrer')}
                 className="text-emerald-600 hover:text-emerald-700 flex items-center gap-1 text-xs font-medium hover:underline"
-                title="Conversar no WhatsApp"
+                title="Conversar no WhatsApp da Empresa"
               >
                 <MessageCircle className="h-3.5 w-3.5" />
                 WhatsApp
               </button>
             )}
           </div>
-          <span className="font-medium">{client.phone || "Não informado"}</span>
+          <span className="font-medium text-sm">{client.phone || "Não informado"}</span>
+
+          {partners.length > 0 && (
+            <div className="border-t pt-2 mt-1 space-y-1">
+              <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                <Users className="h-3 w-3 text-primary" /> Sócios / Contatos ({partners.length})
+              </span>
+              <div className="space-y-1 max-h-24 overflow-y-auto">
+                {partners.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between text-xs py-0.5">
+                    <span className="truncate max-w-[130px]" title={`${p.name} (${p.role || 'Sócio'})`}>
+                      <strong>{p.name}</strong> <span className="text-[10px] text-muted-foreground">({p.role || 'Sócio'})</span>
+                    </span>
+                    {p.phone && (
+                      <button
+                        type="button"
+                        onClick={() => window.open(getWhatsAppUrl(p.phone), '_blank', 'noopener,noreferrer')}
+                        className="text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1 text-[11px] hover:underline"
+                        title={`Conversar com ${p.name}`}
+                      >
+                        <MessageCircle className="h-3 w-3" />
+                        Conversar
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         <div className="bg-card border rounded-lg p-4 flex flex-col gap-1">
           <span className="text-sm text-muted-foreground flex items-center gap-2"><Mail className="h-4 w-4"/> E-mail</span>
@@ -232,7 +267,17 @@ function ClientDetailRoute() {
               <h3 className="text-lg font-medium">Tarefas do Mês</h3>
               <p className="text-sm text-muted-foreground">Competência: {format(currentDate, "MMMM 'de' yyyy", { locale: ptBR })}</p>
             </div>
-            <GenerateTasksBtn clientId={clientId} month={currentDate} />
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                className="gap-1.5 border-purple-300 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/30 h-9 font-medium"
+                onClick={() => setIsQuickTaskOpen(true)}
+              >
+                <Zap className="h-4 w-4 fill-current text-purple-600" />
+                <span>Nova Tarefa Avulsa</span>
+              </Button>
+              <GenerateTasksBtn clientId={clientId} month={currentDate} />
+            </div>
           </div>
           <TaskList tasks={monthTasks || []} />
         </TabsContent>
@@ -288,10 +333,10 @@ function ClientDetailRoute() {
         </TabsContent>
       </Tabs>
       
-      {client.notes && (
+      {cleanNotes && (
         <div className="bg-muted/30 p-4 rounded-lg border">
           <h4 className="text-sm font-medium mb-2 text-muted-foreground">Observações</h4>
-          <p className="text-sm whitespace-pre-wrap">{client.notes}</p>
+          <p className="text-sm whitespace-pre-wrap">{cleanNotes}</p>
         </div>
       )}
 
@@ -320,6 +365,12 @@ function ClientDetailRoute() {
         client={client}
         open={isCobrancaOpen}
         onOpenChange={setIsCobrancaOpen}
+      />
+
+      <QuickTaskModal
+        open={isQuickTaskOpen}
+        onOpenChange={setIsQuickTaskOpen}
+        defaultClientId={clientId}
       />
     </div>
   );

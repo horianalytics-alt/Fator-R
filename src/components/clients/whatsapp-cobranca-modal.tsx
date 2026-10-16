@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Client } from '@/lib/types';
 import { usePixSettings } from '@/hooks/use-pix-settings';
 import {
@@ -17,7 +23,8 @@ import {
   formatPhoneForWhatsApp,
   getWhatsAppUrl,
 } from '@/lib/whatsapp-utils';
-import { MessageCircle, Copy, ExternalLink, AlertTriangle, Check, Sparkles } from 'lucide-react';
+import { extractContactsFromNotes } from '@/lib/client-contacts-utils';
+import { MessageCircle, Copy, ExternalLink, AlertTriangle, Check, Sparkles, Users, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface WhatsAppCobrancaModalProps {
@@ -40,23 +47,47 @@ export function WhatsAppCobrancaModal({
   onOpenChange,
 }: WhatsAppCobrancaModalProps) {
   const { pixSettings } = usePixSettings();
+  const partners = useMemo(() => extractContactsFromNotes(client.notes), [client.notes]);
+
+  const [selectedRecipientId, setSelectedRecipientId] = useState<string>('primary');
+  const [greetingTarget, setGreetingTarget] = useState<'empresa' | 'socio'>('empresa');
   const [motivo, setMotivo] = useState(MOTIVOS_SUGERIDOS[0]);
   const [phone, setPhone] = useState(client.phone || '');
   const [copied, setCopied] = useState(false);
 
-  // Sincroniza telefone quando o cliente ou abertura mudar
+  // Sincroniza ao abrir o modal
   useEffect(() => {
     if (open) {
+      setSelectedRecipientId('primary');
+      setGreetingTarget('empresa');
       setPhone(client.phone || '');
       setCopied(false);
     }
   }, [client.phone, open]);
+
+  // Atualiza telefone e sugestão de saudação ao trocar destinatário
+  const handleRecipientChange = (val: string) => {
+    setSelectedRecipientId(val);
+    if (val === 'primary') {
+      setPhone(client.phone || '');
+      setGreetingTarget('empresa');
+    } else {
+      const partner = partners.find((p) => p.id === val);
+      if (partner) {
+        setPhone(partner.phone || '');
+        setGreetingTarget('socio');
+      }
+    }
+  };
+
+  const selectedPartner = partners.find((p) => p.id === selectedRecipientId);
 
   const cleanPhone = formatPhoneForWhatsApp(phone);
   const isPhoneValid = cleanPhone.length >= 10;
 
   const fullMessage = buildSuspensionMessage({
     clientName: client.name,
+    partnerName: greetingTarget === 'socio' ? selectedPartner?.name : undefined,
     motivo,
     pixSettings,
   });
@@ -104,11 +135,68 @@ export function WhatsAppCobrancaModal({
         </DialogHeader>
 
         <div className="space-y-4 mt-2">
+          {/* SELETOR DE DESTINATÁRIO (SE HOUVER SÓCIOS CADASTRADOS) */}
+          {partners.length > 0 && (
+            <div className="p-3 bg-muted/40 border rounded-lg space-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs sm:text-sm font-semibold flex items-center gap-1.5">
+                  <Users className="h-4 w-4 text-primary" />
+                  Enviar para qual contato?
+                </Label>
+                <Select value={selectedRecipientId} onValueChange={handleRecipientChange}>
+                  <SelectTrigger className="h-10 text-xs sm:text-sm">
+                    <SelectValue placeholder="Selecione o destinatário" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="primary">
+                      🏢 Empresa (Principal): {client.phone || 'Sem telefone cadastrado'}
+                    </SelectItem>
+                    {partners.map((partner) => (
+                      <SelectItem key={partner.id} value={partner.id}>
+                        👤 {partner.name} ({partner.role || 'Sócio'}): {partner.phone || 'Sem telefone'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedPartner && (
+                <div className="space-y-1 pt-1 border-t border-border/50">
+                  <span className="text-[11px] font-medium text-muted-foreground block">
+                    Como saudar no início da mensagem?
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={greetingTarget === 'socio' ? 'default' : 'outline'}
+                      onClick={() => setGreetingTarget('socio')}
+                      className="text-xs h-7 gap-1"
+                    >
+                      <Users className="h-3 w-3" />
+                      Nome do Sócio ({selectedPartner.name})
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={greetingTarget === 'empresa' ? 'default' : 'outline'}
+                      onClick={() => setGreetingTarget('empresa')}
+                      className="text-xs h-7 gap-1"
+                    >
+                      <Building2 className="h-3 w-3" />
+                      Nome da Empresa ({client.name})
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Campo Telefone */}
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
               <Label htmlFor="whatsapp-phone" className="text-xs sm:text-sm font-medium">
-                Número do WhatsApp (com DDD)
+                Número do WhatsApp destino (com DDD)
               </Label>
               {!isPhoneValid && (
                 <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
@@ -141,7 +229,7 @@ export function WhatsAppCobrancaModal({
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
               placeholder="Ex: duas mensalidades de honorários contábeis em atraso"
-              className="text-sm"
+              className="text-sm h-10"
             />
 
             {/* Chips de sugestão rápida */}

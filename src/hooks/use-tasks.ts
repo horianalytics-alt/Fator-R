@@ -103,6 +103,7 @@ export function useDeleteTask() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Tarefa excluída com sucesso!');
     },
     onError: (error) => {
@@ -111,3 +112,50 @@ export function useDeleteTask() {
     }
   });
 }
+
+export function useCreateQuickTask() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: {
+      clientId: string;
+      title: string;
+      dueDate?: string;
+      notes?: string;
+    }) => {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+
+      const due = params.dueDate || new Date().toISOString().split('T')[0];
+      const referenceMonth = due.substring(0, 7) + '-01';
+
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert({
+          user_id: userData.user.id,
+          client_id: params.clientId,
+          client_obligation_id: null,
+          title: params.title.trim(),
+          due_date: due,
+          reference_month: referenceMonth,
+          status: 'pendente',
+          notes: params.notes?.trim() || null,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      toast.success('Tarefa rápida criada com sucesso!');
+    },
+    onError: (error) => {
+      console.error(error);
+      toast.error('Erro ao criar tarefa rápida.');
+    },
+  });
+}
+

@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
-import { AlertCircle, CheckCircle2, Clock } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { QuickTaskModal } from "@/components/tasks/quick-task-modal";
 
 import { 
   useOverdueTasks, 
@@ -34,6 +37,7 @@ function GreetingHeader({ userName }: { userName: string }) {
 
 function DashboardIndex() {
   const { user } = useAuth();
+  const [isQuickTaskOpen, setIsQuickTaskOpen] = useState(false);
   
   const userName = user?.email ? user.email.split("@")[0] : "Usuário";
 
@@ -50,7 +54,16 @@ function DashboardIndex() {
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
-      <GreetingHeader userName={userName} />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <GreetingHeader userName={userName} />
+        <Button
+          onClick={() => setIsQuickTaskOpen(true)}
+          className="bg-purple-600 hover:bg-purple-700 text-white gap-2 font-medium h-10 px-4 shadow-sm w-full sm:w-auto -mt-4 sm:mt-0"
+        >
+          <Zap className="h-4 w-4 fill-current" />
+          <span>Nova Tarefa Rápida</span>
+        </Button>
+      </div>
       
       <div className="grid gap-4 md:grid-cols-3">
         <StatusCard 
@@ -90,6 +103,11 @@ function DashboardIndex() {
           isLoading={isHoldsLoading} 
         />
       </div>
+
+      <QuickTaskModal 
+        open={isQuickTaskOpen} 
+        onOpenChange={setIsQuickTaskOpen} 
+      />
     </div>
   );
 }

@@ -3,9 +3,11 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useTasks } from '@/hooks/use-tasks';
 import { useClients } from '@/hooks/use-clients';
 import { TaskList } from '@/components/tasks/task-list';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList, Zap } from 'lucide-react';
+import { QuickTaskModal } from '@/components/tasks/quick-task-modal';
 
 export const Route = createFileRoute('/_authenticated/tarefas')({
   component: TarefasRoute,
@@ -14,6 +16,7 @@ export const Route = createFileRoute('/_authenticated/tarefas')({
 function TarefasRoute() {
   const [selectedClient, setSelectedClient] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('todas');
+  const [isQuickTaskOpen, setIsQuickTaskOpen] = useState(false);
 
   const { data: clients, isLoading: isClientsLoading } = useClients();
   // Fetch all tasks for active clients, no clientId or referenceMonth filter
@@ -60,6 +63,7 @@ function TarefasRoute() {
     // 3. Status filter
     if (selectedStatus === 'concluidas' && task.status !== 'concluida') return false;
     if (selectedStatus === 'pendentes' && task.status === 'concluida') return false;
+    if (selectedStatus === 'avulsas' && !task.title && task.client_obligation_id) return false;
     if (selectedStatus === 'atrasadas') {
       const isCompleted = task.status === 'concluida';
       const todayTime = new Date().setHours(0, 0, 0, 0);
@@ -81,6 +85,13 @@ function TarefasRoute() {
           </h1>
           <p className="text-muted-foreground mt-1">Gerencie todas as tarefas de todos os clientes</p>
         </div>
+        <Button 
+          onClick={() => setIsQuickTaskOpen(true)}
+          className="bg-amber-500 hover:bg-amber-600 text-white font-medium shadow-sm transition-all h-11 px-4 gap-2 self-start sm:self-auto"
+        >
+          <Zap className="h-4 w-4 fill-white" />
+          Nova Tarefa Rápida
+        </Button>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 bg-card p-4 rounded-lg border">
@@ -112,6 +123,7 @@ function TarefasRoute() {
               <SelectItem value="pendentes">Pendentes (Não concluídas)</SelectItem>
               <SelectItem value="atrasadas">Atrasadas</SelectItem>
               <SelectItem value="concluidas">Concluídas</SelectItem>
+              <SelectItem value="avulsas">⚡ Avulsas / Rápidas</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -123,13 +135,18 @@ function TarefasRoute() {
             <ClipboardList className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
             <h3 className="text-lg font-medium">Nenhuma tarefa encontrada.</h3>
             <p className="text-muted-foreground max-w-md mx-auto mt-2">
-              Selecione outro filtro ou gere as tarefas do mês no Calendário.
+              Selecione outro filtro ou crie uma tarefa rápida acima.
             </p>
           </div>
         ) : (
           <TaskList tasks={filteredTasks} />
         )}
       </div>
+
+      <QuickTaskModal 
+        open={isQuickTaskOpen} 
+        onOpenChange={setIsQuickTaskOpen} 
+      />
     </div>
   );
 }
